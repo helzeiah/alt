@@ -1,0 +1,15 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "alt"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+alt = "alt.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/alt"]
