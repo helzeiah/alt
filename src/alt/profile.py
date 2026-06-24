@@ -1,11 +1,4 @@
-"""Read and write the oauthAccount block in ~/.claude.json.
-
-This file holds account metadata (email, org, billing type, etc.) that Claude
-Code displays in the UI. It is separate from the OAuth token itself, which
-lives in the keychain (macOS) or .credentials.json (Linux).
-
-We update oauthAccount in-place so all other Claude Code settings are preserved.
-"""
+"""Read and write the oauthAccount block in ~/.claude.json."""
 import json
 from typing import Any
 
@@ -13,6 +6,11 @@ from alt.paths import claude_global_config_path
 
 
 def read_oauth_account() -> dict[str, Any] | None:
+    """Read the oauthAccount field from ~/.claude.json.
+
+    Returns:
+        The oauthAccount dict, or None if the file or field is missing.
+    """
     path = claude_global_config_path()
     if not path.exists():
         return None
@@ -24,6 +22,11 @@ def read_oauth_account() -> dict[str, Any] | None:
 
 
 def write_oauth_account(account: dict[str, Any]) -> None:
+    """Update the oauthAccount field in ~/.claude.json, preserving all other fields.
+
+    Args:
+        account: The oauthAccount dict to write.
+    """
     path = claude_global_config_path()
     try:
         data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}

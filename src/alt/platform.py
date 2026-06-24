@@ -1,3 +1,4 @@
+"""Current platform detection, evaluated once at import time."""
 import sys
 from enum import Enum
 
@@ -10,6 +11,11 @@ class Platform(Enum):
 
     @classmethod
     def detect(cls) -> "Platform":
+        """Detect the current operating system.
+
+        Returns:
+            The detected Platform variant.
+        """
         if sys.platform == "darwin":
             return cls.MACOS
         if sys.platform.startswith("linux"):

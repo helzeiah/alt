@@ -1,7 +1,7 @@
-"""alt's own configuration: profile metadata and priority ordering.
+"""alt configuration: profile metadata and priority ordering.
 
-Stored at ~/.alt/config.json. Written atomically so a crash mid-save
-never leaves a half-written file.
+Stored at ~/.alt/config.json. Written atomically so a crash during save
+never leaves a corrupt file.
 """
 import json
 import os
@@ -17,6 +17,7 @@ _VERSION = 1
 
 @dataclass
 class ProfileMeta:
+    """Metadata for a saved account profile."""
     name: str
     email: str
     oauth_account: dict[str, Any]
@@ -25,6 +26,7 @@ class ProfileMeta:
 
 @dataclass
 class Config:
+    """alt's persisted state."""
     version: int = _VERSION
     priority: list[str] = field(default_factory=list)
     current: str | None = None
@@ -32,10 +34,20 @@ class Config:
 
 
 def now_iso() -> str:
+    """Return the current UTC time as an ISO 8601 string.
+
+    Returns:
+        Current UTC timestamp.
+    """
     return datetime.now(timezone.utc).isoformat()
 
 
 def load() -> Config:
+    """Load config from disk, returning an empty Config if the file is missing.
+
+    Returns:
+        The current Config.
+    """
     path = alt_config_path()
     if not path.exists():
         return Config()
@@ -57,6 +69,11 @@ def load() -> Config:
 
 
 def save(config: Config) -> None:
+    """Write config to disk atomically.
+
+    Args:
+        config: The Config to persist.
+    """
     path = alt_config_path()
     alt_dir().mkdir(mode=0o700, parents=True, exist_ok=True)
 

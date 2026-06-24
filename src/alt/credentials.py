@@ -1,9 +1,8 @@
 """Platform-aware credential I/O.
 
-Two concerns:
-  active   — the credential slot Claude Code reads (keychain on macOS, file on Linux)
-  backup   — alt's own per-profile copies (keychain "alt-<name>" on macOS,
-              base64 .enc files under ~/.alt/credentials/ on Linux)
+Provides two pairs of read/write functions:
+  active  — the credential slot Claude Code reads
+  backup  — alt's own per-profile copies
 """
 import base64
 import os
@@ -20,10 +19,14 @@ _ACTIVE_SERVICE = "Claude Code-credentials"
 _BACKUP_SERVICE_PREFIX = "alt"
 
 
-# ── helpers ──────────────────────────────────────────────────────────────────
-
 def _atomic_write(path: Path, data: str, mode: int = 0o600) -> None:
-    """Write data to path atomically via a temp file + os.replace()."""
+    """Write data to path via a temp file then os.replace(), preventing partial writes.
+
+    Args:
+        path: Destination file path.
+        data: String content to write.
+        mode: File permission bits.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
     try:
@@ -47,10 +50,14 @@ def _enc_path(name: str) -> Path:
     return alt_credentials_dir() / f"{name}.enc"
 
 
-# ── active credential (Claude Code's slot) ───────────────────────────────────
+# ── active credential ────────────────────────────────────────────────────────
 
 def read_active() -> str | None:
-    """Read the credential Claude Code is currently using."""
+    """Read the credential Claude Code is currently using.
+
+    Returns:
+        The raw credential string, or None if not found.
+    """
     if CURRENT == Platform.MACOS:
         return keychain.get(_ACTIVE_SERVICE)
 
@@ -61,7 +68,11 @@ def read_active() -> str | None:
 
 
 def write_active(value: str) -> None:
-    """Write to Claude Code's active credential slot."""
+    """Write to Claude Code's active credential slot.
+
+    Args:
+        value: The credential string to make active.
+    """
     if CURRENT == Platform.MACOS:
         keychain.set(_ACTIVE_SERVICE, value)
         return
@@ -70,7 +81,7 @@ def write_active(value: str) -> None:
 
 
 def delete_active() -> None:
-    """Remove Claude Code's active credential (used when cleaning up)."""
+    """Remove Claude Code's active credential."""
     if CURRENT == Platform.MACOS:
         keychain.delete(_ACTIVE_SERVICE)
         return
@@ -80,10 +91,17 @@ def delete_active() -> None:
         cred_file.unlink()
 
 
-# ── backup credentials (alt's per-profile copies) ────────────────────────────
+# ── backup credentials ───────────────────────────────────────────────────────
 
 def read_backup(name: str) -> str | None:
-    """Read alt's saved copy of a profile's credential."""
+    """Read alt's saved copy of a profile's credential.
+
+    Args:
+        name: Profile name.
+
+    Returns:
+        The credential string, or None if no backup exists.
+    """
     if CURRENT == Platform.MACOS:
         return keychain.get(f"{_BACKUP_SERVICE_PREFIX}-{name}")
 
@@ -97,7 +115,12 @@ def read_backup(name: str) -> str | None:
 
 
 def write_backup(name: str, value: str) -> None:
-    """Save a profile's credential into alt's backup store."""
+    """Save a profile's credential into alt's backup store.
+
+    Args:
+        name: Profile name.
+        value: The credential string to back up.
+    """
     if CURRENT == Platform.MACOS:
         keychain.set(f"{_BACKUP_SERVICE_PREFIX}-{name}", value)
         return
@@ -108,7 +131,11 @@ def write_backup(name: str, value: str) -> None:
 
 
 def delete_backup(name: str) -> None:
-    """Remove alt's saved copy of a profile's credential."""
+    """Remove alt's saved copy of a profile's credential.
+
+    Args:
+        name: Profile name.
+    """
     if CURRENT == Platform.MACOS:
         keychain.delete(f"{_BACKUP_SERVICE_PREFIX}-{name}")
         return

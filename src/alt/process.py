@@ -1,16 +1,21 @@
-"""Detect running Claude Code instances by reading ~/.claude/sessions/.
-
-Session files are named by PID (e.g. 17664.json). We check liveness with
-os.kill(pid, 0) — sends no signal, just checks if the process exists.
-"""
+"""Detect live Claude Code processes by reading session files."""
 import json
 import os
 
 from alt.paths import claude_sessions_dir
+from alt.platform import CURRENT, Platform
 
 
 def running_sessions() -> list[dict]:
-    """Return session metadata for each live Claude Code process."""
+    """Return session metadata for each live Claude Code process.
+
+    Reads PID-named JSON files from the sessions directory and checks
+    whether each process is still running.
+
+    Returns:
+        List of session dicts for live processes. Each dict contains at
+        minimum a ``pid`` key plus whatever Claude Code wrote to the file.
+    """
     sessions_dir = claude_sessions_dir()
     if not sessions_dir.exists():
         return []
@@ -23,11 +28,11 @@ def running_sessions() -> list[dict]:
             continue
 
         try:
-            os.kill(pid, 0)  # raises if process doesn't exist
+            os.kill(pid, 0)
         except ProcessLookupError:
             continue
         except PermissionError:
-            pass  # process exists but we can't signal it — count it as live
+            pass  # process exists but we can't signal it
 
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
@@ -47,5 +52,7 @@ def warn_if_running() -> None:
 
     pids = ", ".join(str(s["pid"]) for s in sessions)
     print(f"Warning: {len(sessions)} running Claude Code session(s) detected (PID {pids}).")
-    print("  The credential swap will take effect within ~30s on macOS.")
-    print("  On Linux it is instant — the next message will use the new account.")
+    if CURRENT == Platform.MACOS:
+        print("  The new account takes effect within ~30 seconds.")
+    else:
+        print("  The new account takes effect immediately on your next message.")
