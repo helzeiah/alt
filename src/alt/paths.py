@@ -87,3 +87,12 @@ def alt_sessions_dir() -> Path:
         ~/.alt/sessions/
     """
     return alt_dir() / "sessions"
+
+
+def alt_usage_cache_path() -> Path:
+    """Return the path to alt's usage-response cache.
+
+    Returns:
+        ~/.alt/usage-cache.json
+    """
+    return alt_dir() / "usage-cache.json"

@@ -38,6 +38,21 @@ def main() -> None:
     p.add_argument("args", nargs=argparse.REMAINDER,
                    help="Arguments forwarded to claude (use -- to separate).")
 
+    p = sub.add_parser("usage", help="Show live spend for a profile (or all).")
+    p.add_argument("name", nargs="?", help="Profile name. Omit for the active profile.")
+    p.add_argument("--all", action="store_true", help="Show every profile.")
+
+    p = sub.add_parser("limit", help="Set or show the spend threshold for switching.")
+    p.add_argument("name", nargs="?", help="Profile name. Omit with --default.")
+    p.add_argument("--percent", type=float, help="Recommend switching at this spend %%.")
+    p.add_argument("--dollars", type=float, help="Recommend switching at this $ spent.")
+    p.add_argument("--clear", action="store_true", help="Remove the per-account override.")
+    p.add_argument("--default", action="store_true",
+                   help="Set the global default threshold (with --percent).")
+
+    # Internal hook entry point; no help= so it stays out of the command listing.
+    p = sub.add_parser("guard")
+
     args = parser.parse_args()
 
     match args.cmd:
@@ -51,6 +66,13 @@ def main() -> None:
         case "run":
             claude_args = [a for a in args.args if a != "--"]
             switcher.run(args.name, claude_args)
+        case "usage":
+            if args.all:
+                switcher.usage_all()
+            else:
+                switcher.usage_report(args.name)
+        case "limit":  _cmd_limit(args)
+        case "guard":  switcher.guard()
 
 
 def _cmd_list() -> None:
@@ -87,6 +109,31 @@ def _cmd_current() -> None:
         print(f"{config.current}  ({p.email})")
     else:
         print("No active profile. Run: alt add <name>")
+
+
+def _cmd_limit(args: argparse.Namespace) -> None:
+    """Dispatch the `limit` command to the right switcher call.
+
+    Args:
+        args: Parsed arguments (name, percent, dollars, clear, default).
+    """
+    if args.default:
+        if args.percent is None:
+            print("Error: --default requires --percent.", file=sys.stderr)
+            sys.exit(1)
+        switcher.set_default_limit(args.percent)
+        return
+
+    if not args.name:
+        print("Error: profile name required (or use --default).", file=sys.stderr)
+        sys.exit(1)
+
+    switcher.set_limit(
+        args.name,
+        percent=args.percent,
+        dollars=args.dollars,
+        clear=args.clear,
+    )
 
 
 def _cmd_priority(names: list[str]) -> None:

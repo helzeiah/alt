@@ -6,7 +6,7 @@ never leaves a corrupt file.
 import json
 import os
 import tempfile
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, asdict, fields as dc_fields
 from datetime import datetime, timezone
 from typing import Any
 
@@ -22,6 +22,8 @@ class ProfileMeta:
     email: str
     oauth_account: dict[str, Any]
     added_at: str  # ISO 8601 UTC
+    switch_at_percent: float | None = None  # recommend switching at this spend %
+    switch_at_dollars: float | None = None  # ...or at this many dollars spent
 
 
 @dataclass
@@ -31,6 +33,7 @@ class Config:
     priority: list[str] = field(default_factory=list)
     current: str | None = None
     profiles: dict[str, ProfileMeta] = field(default_factory=dict)
+    default_switch_at_percent: float = 100.0  # default: only at the full limit
 
 
 def now_iso() -> str:
@@ -56,8 +59,9 @@ def load() -> Config:
     except (json.JSONDecodeError, OSError):
         return Config()
 
+    fields = {f.name for f in dc_fields(ProfileMeta)}
     profiles = {
-        name: ProfileMeta(**data)
+        name: ProfileMeta(**{k: v for k, v in data.items() if k in fields})
         for name, data in raw.get("profiles", {}).items()
     }
     return Config(
@@ -65,6 +69,7 @@ def load() -> Config:
         priority=raw.get("priority", []),
         current=raw.get("current"),
         profiles=profiles,
+        default_switch_at_percent=raw.get("default_switch_at_percent", 100.0),
     )
 
 
@@ -81,6 +86,7 @@ def save(config: Config) -> None:
         "version": config.version,
         "priority": config.priority,
         "current": config.current,
+        "default_switch_at_percent": config.default_switch_at_percent,
         "profiles": {name: asdict(p) for name, p in config.profiles.items()},
     }
 
