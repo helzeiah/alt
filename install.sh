@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "Installing alt..."
 
-pip install -e "$SCRIPT_DIR" --quiet
+pipx install -e "$SCRIPT_DIR" --force --quiet
 
 COMMANDS_DIR="$HOME/.claude/commands"
 mkdir -p "$COMMANDS_DIR"
